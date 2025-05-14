@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hamming Kodu Hesaplama</title>
+    <style>
+        /* CSS Stilleri */
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('Hamming.svg'); /* Arka plan resmi */
+            background-size: cover; /* Resmin boyutunu kapsayacak şekilde ayarla */
+            background-repeat: no-repeat; /* Resmin tekrarlanmamasını sağla */
+            background-attachment: fixed; /* Arka plan resminin kaydırılmasını engelle */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        /* Container Stilleri */
+        #container {
+            background-color: rgba(255, 255, 255, 0.8); /* Arka planı yarı saydam yap */
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 400px;
+        }
+        /* Başlık Stilleri */
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        p {
+            margin-bottom: 15px;
+            color: #666;
+        }
+        /* Etiket Stilleri */
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        /* Input Alanı Stilleri */
+        input[type="text"] {
+            width: calc(100% - 75px);
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        /* Buton Stilleri */
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+        /* Sonuç, Hata Konumu ve Sendrom Alanı Stilleri */
+        #result, #errorLocation, #syndrome {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        /* Uyarı mesajı stili */
+        #warning {
+            color: red;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Hamming Kodu Hesaplama</h1>
+        <p>
+            Bu uygulama, kullanıcıdan alınan verinin Hamming kodunu hesaplar ve yapay bir hatayı simüle eder.
+        </p>
+        <label for="dataInput">Veri Bitleri (0 ve 1'ler): </label><!-- Veri girişi için etiket -->
+        <input type="text" id="dataInput"> <!-- Veri giriş alanı -->
+        <br>
+        <button onclick="simulateError()">Hata Oluştur</button><!-- Hata oluşturma butonu -->
+        <button onclick="calculateHamming()">Hesapla</button> <!-- Hamming kodunu hesaplama butonu -->
+        <p id="result"></p><!-- Sonuç gösterilecek alan -->
+        <p id="errorLocation"></p><!-- Hata konumu gösterilecek alan -->
+        <p id="syndrome"></p> <!-- Sendrom gösterilecek alan -->
+        <p id="warning"></p> <!-- Uyarı mesajı alanı -->
+    </div>
+
+    <script>
+        let originalData = '';// Orijinal veriyi saklamak için değişken
+
+        // Hamming kodunu hesaplayan fonksiyon
+        function calculateHamming() {
+            let inputData = document.getElementById("dataInput").value;
+            if (inputData.length !== 4 && inputData.length !== 8 && inputData.length !== 16) {
+                document.getElementById("warning").innerText = "Lütfen sadece 4, 8 veya 16 bit uzunluğunda veri giriniz.";
+                document.getElementById("result").innerText = '';
+                document.getElementById("errorLocation").innerText = '';
+                document.getElementById("syndrome").innerText = '';
+                return;
+            } else {
+                document.getElementById("warning").innerText = '';
+            }
+
+            originalData = inputData;
+            let hammingCode = calculateHammingCode(inputData);
+            document.getElementById("result").innerText = "Hamming Kodu: " + hammingCode;
+        }
+
+        // Yapay hata oluşturan fonksiyon
+        function simulateError() {
+            let randomIndex = Math.floor(Math.random() * originalData.length);
+            let originalChar = originalData.charAt(randomIndex);
+            let newData = originalData.slice(0, randomIndex) + (originalChar === '0' ? '1' : '0') + originalData.slice(randomIndex + 1);
+            document.getElementById("dataInput").value = newData;
+            document.getElementById("errorLocation").innerText = "Yapay Hata Oluşturuldu: " + (randomIndex + 1);
+        }
+
+        // Hamming kodunu hesaplayan fonksiyon
+        function calculateHammingCode(data) {
+            // Parite bitlerinin gerektiği sayıyı bulma
+            let r = 0;
+            while (Math.pow(2, r) < data.length + r + 1) {
+                r++;
+            }
+
+            // Veri ve parite bitlerini tutmak için dizi oluşturma
+            let hammingArray = new Array(data.length + r).fill(0);
+
+            // Veri bitlerini doldurma
+            let dataIndex = 0;
+            for (let i = 0; i < hammingArray.length; i++) {
+                if (!isPowerOfTwo(i + 1)) {
+                    hammingArray[i] = parseInt(data[dataIndex]);
+                    dataIndex++;
+                }
+            }
+
+            // Parite bitlerini hesaplama
+            for (let i = 0; i < r; i++) {
+                let parityIndex = Math.pow(2, i) - 1; // Parite bitinin indeksini hesaplama
+                let parityValue = calculateParityValue(hammingArray, parityIndex);
+                hammingArray[parityIndex] = parityValue;
+            }
+
+            return hammingArray.join('');
+        }
+
+        function isPowerOfTwo(n) {
+            return (n & (n - 1)) === 0;
+        }
+
+        function calculateParityValue(arr, parityIndex) {
+            let parityValue = 0;
+            for (let i = parityIndex; i < arr.length; i++) {
+                if (((i + 1) & (parityIndex + 1)) !== 0) { // Parite biti için bitin kullanılması gerekip gerekmediğini kontrol eder.
+                    parityValue ^= arr[i];
+                }
+            }
+            return parityValue;
+        }
+
+        function calculateSyndrome(hammingCode) {
+            let syndrome = 0;
+            for (let i = 0; i < hammingCode.length; i++) {
+                if (hammingCode.charAt(i) === '1') {
+                    syndrome ^= (i + 1); // Bit pozisyonları 1'den başlar.
+                }
+            }
+            return syndrome;
+        }
+
+        function findErrorLocation(syndrome) {
+            return syndrome === 0 ? -1 : syndrome;
+        }
+
+        function decodeHammingCode(hammingCode) {
+            let syndrome = calculateSyndrome(hammingCode);
+            let errorLocation = findErrorLocation(syndrome);
+            document.getElementById("syndrome").innerText = "Sendrom: " + syndrome;
+            if (errorLocation !== -1) {
+                return "Hata Bulundu! Hatanın Oluştuğu Bit Pozisyonu: " + errorLocation;
+            } else {
+                return "Hata Yok.";
+            }
+        }
+    </script>
+</body>
+</html>
